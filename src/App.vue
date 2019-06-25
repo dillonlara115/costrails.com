@@ -1,28 +1,129 @@
 <template>
-  <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
+  <div id="app" class="container">
+     <h1 class="is-size-3">Colorado Springs MTB Trail Conditions</h1>
+     <div class="field">
+         <div class="control">
+            <input type="text" class="input" v-model="search" placeholder="search trails" />
+         </div>
+      </div>
+    <table class="table is-hoverable is-striped is-fullwidth">
+      <thead>
+       <th v-for="column in columns">
+						{{column.label}}
+						
+					</th>
+      </thead>
+      <tr v-for="condition in filteredConditions" >
+        <td>{{ condition.name }}</td>
+        <td>
+          <span v-if="condition.conditionColor == 'Green'">
+            <i class="fas fa-thumbs-up has-text-primary is-size-4"></i>
+          </span>
+          <span v-else-if="condition.conditionColor == 'Yellow'">
+            <i class="fas fa-hand-rock has-text-warning is-size-4"></i>
+          </span>
+          <span v-else-if="condition.conditionColor == 'Red'">
+            <i class="fas fa-hand-middle-finger has-text-danger is-size-4"></i>
+          </span>
+          <br>
+          {{ condition.conditionStatus }}
+          <br>
+          <small>{{ condition.conditionDetails }}</small>
+        </td>
+        <td>
+          <span
+            v-if="condition.conditionDate"
+          >{{getConditionDate(condition.conditionDate)}}</span><br>
+          <span
+            v-if="condition.urlConditionsUpdate"
+          >
+         <a :href="condition.urlConditionsUpdate" target="_blank"  class="button is-light is-fullwidth">update</a></span>
+        </td>
+      </tr>
+    </table>
   </div>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
-
+import axios from "axios";
+import moment from "moment";
 export default {
-  name: 'app',
-  components: {
-    HelloWorld
-  }
-}
+   name: "app",
+   components: {
+      
+   },
+   data() {
+      return {
+         conditions: [],
+         search: "",
+         columns: [
+            {label: 'Trail', shortcode: 'trail'},
+           { label: 'Condition', shortcode: 'condition'},
+           { label: 'Last Updated', shortcode: 'updated'}
+         ],
+         currentSort:'trail',
+         currentSortDir:'asc'
+      };
+   },
+   methods: {
+      getConditionDate : function (date) {
+
+         return moment(date, 'YYYY-MM-DD').format('MMMM DD');
+
+      },
+      sort:function(col) {
+      // if you click the same label twice
+      if(this.currentSort == col){
+        this.currentSortDir = this.currentSortDir === 'asc' ? 'desc' : 'asc';
+      }else{
+        this.currentSort = col;
+        console.log( 'diff col: '+col );
+      } // end if
+
+    }, // sort
+   },
+   mounted() {
+      axios
+         .get(
+            "https://www.mtbproject.com/data/get-conditions?ids=7044665,7038543,3504412,4307089,7041274,7037093,270021,7020372,789594,712638,7033173,2214920&key=200338445-e5ebb8bb1a9a7f8e6686296dab783b1e"
+         )
+         .then(response => (this.conditions = response.data));
+   },
+   computed: {
+      filteredConditions() {
+         let listOfObjects = Object.keys(this.conditions).map((key) => {
+            return this.conditions[key]
+         })
+         listOfObjects.splice(-1,1) // removes success entry from api response
+         return listOfObjects.filter((condition) => {
+            return condition.name.toLowerCase().match(this.search);
+         }).sort((a, b) => {
+        if (this.currentSortDir === 'asc') {
+	        return a[this.currentSort] >= b[this.currentSort];      
+        }
+        return a[this.currentSort] <= b[this.currentSort];
+      });
+      }
+   }
+};
 </script>
 
 <style>
-#app {
-  font-family: 'Avenir', Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+@import url("https://fonts.googleapis.com/css?family=Oswald:400,500,600|Roboto+Slab:300,400&display=swap");
+
+body {
+   font-family: "Roboto Slab", serif;
+   font-size: 18px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+th {
+   font-family: "Oswald", sans-serif;
+   text-transform: uppercase;
 }
 </style>
